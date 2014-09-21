@@ -36,7 +36,7 @@ neo4j.setLogger(logger);
 /**
  * Creates the indexes
  */
-this.createConstraints = function() {
+this.saveConstraints = function() {
     var cypherStatements =
         [
             'CREATE CONSTRAINT ON (s:Status) ASSERT s.id IS UNIQUE',
@@ -68,7 +68,7 @@ this.createConstraints = function() {
                 if (expectedCallbacks === receivedCallbacks) {
                     logger.info(
                             'Saved ' + expectedCallbacks + ' constraints');
-                    self.createIndexes();
+                    self.saveIndexes();
                 } else {
                     ++index;
                     queryNext(cypherStatements[index], index);
@@ -82,7 +82,7 @@ this.createConstraints = function() {
 /**
  * Creates indexes for better performance
  */
-this.createIndexes = function() {
+this.saveIndexes = function() {
     var cypherStatements =
         [
             'CREATE INDEX ON :Docent(lastName)'
@@ -106,7 +106,7 @@ this.createIndexes = function() {
                     self.saveLectureTypes();
                     self.saveModulePlans();
                     self.saveModules();
-                    self.createUsersForSecretary();
+                    self.saveUsersForSecretary();
                 } else {
                     ++index;
                     queryNext(cypherStatements[index], index);
@@ -194,7 +194,7 @@ this.saveDocents = function() {
                         logger.info(
                                 'Saved ' + expectedCallbacks + ' docents');
                         self.saveTeachings();
-                        self.createUsersForDocents();
+                        self.saveUsersForDocents();
                         self.saveNewLectureSeries();
                     }
                 }
@@ -434,7 +434,7 @@ this.saveModuleLecture = function() {
  * Creates the label user for docents that were user in the old system.
  * Besides it sets their username
  */
-this.createUsersForDocents = function() {
+this.saveUsersForDocents = function() {
     var fileName = 'user_dozent.json';
     fs.readFile(DATA_PATH + fileName, 'utf8', function(err, data) {
         if (err) {
@@ -456,7 +456,7 @@ this.createUsersForDocents = function() {
                         logger.info(
                                 'Saved ' + expectedCallbacks + ' ' +
                                 'users for docents');
-                        self.addLabelForHeads();
+                        self.saveLabelForHeads();
                     }
                 }
             );
@@ -467,7 +467,7 @@ this.createUsersForDocents = function() {
 /**
  * creates users for the secretaries
  */
-this.createUsersForSecretary = function() {
+this.saveUsersForSecretary = function() {
     var fileName = 'user_sekretariat.json';
     fs.readFile(DATA_PATH + fileName, 'utf8', function(err, data) {
         if (err) {
@@ -511,7 +511,7 @@ this.createUsersForSecretary = function() {
 /**
  * adds labels for the heads of the courses
  */
-this.addLabelForHeads = function() {
+this.saveLabelForHeads = function() {
     var fileName = 'user_studiengangsleiter.json';
     fs.readFile(DATA_PATH + fileName, 'utf8', function(err, data) {
         if (err) {
@@ -739,4 +739,4 @@ this.saveSemester = function() {
     });
 };
 
-this.createConstraints();
+this.saveConstraints();
