@@ -1,7 +1,9 @@
 /**
  * @author Tarek Auel
  */
-var neo4j = require('./lib/neo4j.js'),
+var winston = require('winston'),
+    logger,
+    neo4j = require('./lib/neo4j.js'),
     DATA_PATH = './data/',
     fs = require('fs'),
     docent = require('./lib/docent.js'),
@@ -21,6 +23,15 @@ var neo4j = require('./lib/neo4j.js'),
     docentUser = require('./lib/docentUser.js'),
     room = require('./lib/room.js'),
     self = this;
+
+logger = new (winston.Logger)({
+    transports: [
+        new (winston.transports.Console)({ level: 'info', colorize: true }),
+        new (winston.transports.File)({ filename: './log/migration.log', level: 'verbose' })
+    ]
+});
+
+neo4j.setLogger(logger);
 
 /**
  * Creates the indexes
@@ -55,7 +66,7 @@ this.createConstraints = function() {
                     throw err;
                 ++receivedCallbacks;
                 if (expectedCallbacks === receivedCallbacks) {
-                    console.log(
+                    logger.info(
                             'Saved ' + expectedCallbacks + ' constraints');
                     self.createIndexes();
                 } else {
@@ -76,7 +87,6 @@ this.createIndexes = function() {
         [
             'CREATE INDEX ON :Docent(lastName)'
         ];
-
     var expectedCallbacks = cypherStatements.length;
     var receivedCallbacks = 0;
     var queryNext = function(cypher, index) {
@@ -90,7 +100,7 @@ this.createIndexes = function() {
                     throw err;
                 ++receivedCallbacks;
                 if (expectedCallbacks === receivedCallbacks) {
-                    console.log('Saved ' + expectedCallbacks + ' indexes');
+                    logger.info('Saved ' + expectedCallbacks + ' indexes');
                     self.saveAllRooms();
                     self.saveStatus();
                     self.saveLectureTypes();
@@ -150,7 +160,7 @@ this.saveLectureTypes = function() {
                 }
                 ++receivedCallbacks;
                 if (expectedCallbacks === receivedCallbacks) {
-                    console.log('Saved ' + expectedCallbacks + ' ' +
+                    logger.info('Saved ' + expectedCallbacks + ' ' +
                     'lecture types');
                     self.saveLectures();
                 }
@@ -166,7 +176,7 @@ this.saveDocents = function() {
     var fileName = 'dozenten.json';
     fs.readFile(DATA_PATH + fileName, 'utf8', function(err, data) {
         if (err) {
-            return console.log(err);
+            return logger.info(err);
         }
         var docentArray = JSON.parse(data),
             expectedCallbacks = docentArray.length,
@@ -181,7 +191,7 @@ this.saveDocents = function() {
                         throw err;
                     receivedCallback++;
                     if (expectedCallbacks === receivedCallback) {
-                        console.log(
+                        logger.info(
                                 'Saved ' + expectedCallbacks + ' docents');
                         self.saveTeachings();
                         self.createUsersForDocents();
@@ -206,7 +216,7 @@ this.saveTeachings = function() {
     var fileName = 'dozent_lehrt.json';
     fs.readFile(DATA_PATH + fileName, 'utf8', function(err, data) {
         if (err) {
-            return console.log(err);
+            return logger.info(err);
         }
         var teachesArray = JSON.parse(data),
             expectedCallbacks = teachesArray.length,
@@ -214,12 +224,12 @@ this.saveTeachings = function() {
         teachesArray.forEach(function(teaches) {
 
             if (teaches.idDozent === 0) {
-                console.log('Skipped a teaching (docent does not exist)');
+                logger.debug('Skipped a teaching (docent ' + teaches.idDozent + ' does not exist)');
                 return;
             }
 
             if ([0, 508].indexOf(teaches.idFach) !== -1) {
-                console.log('Skipped a teaching (lecture does not exist)');
+                logger.debug('Skipped a teaching (lecture ' + teaches.idFach + ' does not exist)');
                 return;
             }
 
@@ -233,7 +243,7 @@ this.saveTeachings = function() {
                         throw err;
                     ++receivedCallbacks;
                     if (expectedCallbacks === receivedCallbacks) {
-                        console.log(
+                        logger.info(
                                 'Saved ' + expectedCallbacks + ' teachings');
                         // DO NEXT COOL STUFF
                     }
@@ -250,7 +260,7 @@ this.saveLectures = function() {
     var fileName = 'fach.json';
     fs.readFile(DATA_PATH + fileName, 'utf8', function(err, data) {
         if (err) {
-            return console.log(err);
+            return logger.info(err);
         }
         var lectureArray = JSON.parse(data),
             expectedCallbacks = lectureArray.length,
@@ -265,7 +275,7 @@ this.saveLectures = function() {
                         throw err;
                     ++receivedCallbacks;
                     if (expectedCallbacks === receivedCallbacks) {
-                        console.log(
+                        logger.info(
                                 'Saved ' + expectedCallbacks + ' lectures');
                         self.saveTeachings();
                         self.saveModuleLecture();
@@ -299,7 +309,7 @@ this.saveModulePlans = function() {
                         throw err;
                     ++receivedCallbacks;
                     if (expectedCallbacks === receivedCallbacks) {
-                        console.log(
+                        logger.info(
                                 'Saved ' + expectedCallbacks + ' module plans');
                         self.saveModulesToModulePlans();
                         self.saveCourses();
@@ -332,7 +342,7 @@ this.saveModules = function() {
                         throw err;
                     ++receivedCallbacks;
                     if (expectedCallbacks === receivedCallbacks) {
-                        console.log(
+                        logger.info(
                                 'Saved ' + expectedCallbacks + ' modules');
                         self.saveModuleLecture();
                         self.saveModulesToModulePlans();
@@ -356,7 +366,7 @@ this.saveModulesToModulePlans = function() {
     var filename = 'modulplan_modul.json';
     fs.readFile(DATA_PATH + filename, 'utf8', function(err, data) {
         if (err) {
-            return console.log(err);
+            return logger.info(err);
         }
         var mappingArray = JSON.parse(data),
             expectedCallbacks = mappingArray.length,
@@ -371,7 +381,7 @@ this.saveModulesToModulePlans = function() {
                         throw err;
                     ++receivedCallbacks;
                     if (expectedCallbacks === receivedCallbacks) {
-                        console.log(
+                        logger.info(
                                 'Saved ' + expectedCallbacks + ' module to ' +
                                 'module plans mappings');
                         // DO NEXT STUFF
@@ -394,7 +404,7 @@ this.saveModuleLecture = function() {
     var fileName = 'modul_fach.json';
     fs.readFile(DATA_PATH + fileName, 'utf8', function(err, data) {
         if (err) {
-            return console.log(err);
+            return logger.info(err);
         }
         var moduleLecture = JSON.parse(data),
             expectedCallbacks = moduleLecture.length,
@@ -409,7 +419,7 @@ this.saveModuleLecture = function() {
                         throw err;
                     ++receivedCallbacks;
                     if (expectedCallbacks === receivedCallbacks) {
-                        console.log(
+                        logger.info(
                                 'Saved ' + expectedCallbacks + ' module to ' +
                                 'lecture mapping');
                         // DO NEXT COOL STUFF
@@ -428,7 +438,7 @@ this.createUsersForDocents = function() {
     var fileName = 'user_dozent.json';
     fs.readFile(DATA_PATH + fileName, 'utf8', function(err, data) {
         if (err) {
-            return console.log(err);
+            return logger.info(err);
         }
         var mappingArray = JSON.parse(data),
             expectedCallbacks = mappingArray.length,
@@ -443,7 +453,7 @@ this.createUsersForDocents = function() {
                         throw err;
                     ++receivedCallbacks;
                     if (expectedCallbacks === receivedCallbacks) {
-                        console.log(
+                        logger.info(
                                 'Saved ' + expectedCallbacks + ' ' +
                                 'users for docents');
                         self.addLabelForHeads();
@@ -461,7 +471,7 @@ this.createUsersForSecretary = function() {
     var fileName = 'user_sekretariat.json';
     fs.readFile(DATA_PATH + fileName, 'utf8', function(err, data) {
         if (err) {
-            return console.log(err);
+            return logger.info(err);
         }
         var mappingArray = JSON.parse(data),
             expectedCallbacks = mappingArray.length,
@@ -487,7 +497,7 @@ this.createUsersForSecretary = function() {
                         throw err;
                     ++receivedCallbacks;
                     if (expectedCallbacks === receivedCallbacks) {
-                        console.log(
+                        logger.info(
                                 'Saved ' + expectedCallbacks + ' ' +
                                 'users for secretaries');
                         self.saveCourses();
@@ -505,7 +515,7 @@ this.addLabelForHeads = function() {
     var fileName = 'user_studiengangsleiter.json';
     fs.readFile(DATA_PATH + fileName, 'utf8', function(err, data) {
         if (err) {
-            return console.log(err);
+            return logger.info(err);
         }
         var mappingArray = JSON.parse(data),
             expectedCallbacks = mappingArray.length,
@@ -526,7 +536,7 @@ this.addLabelForHeads = function() {
                         throw err;
                     ++receivedCallbacks;
                     if (expectedCallbacks === receivedCallbacks) {
-                        console.log(
+                        logger.info(
                                 'Saved ' + expectedCallbacks + ' ' +
                                 'labels for heads');
                         self.saveCourses();
@@ -549,7 +559,7 @@ this.saveCourses = function() {
     var fileName = 'kurse.json';
     fs.readFile(DATA_PATH + fileName, 'utf8', function(err, data) {
         if (err) {
-            return console.log(err);
+            return logger.info(err);
         }
         var courseArray = JSON.parse(data),
             expectedCallbacks = courseArray.length,
@@ -564,7 +574,7 @@ this.saveCourses = function() {
                         throw err;
                     ++receivedCallbacks;
                     if (expectedCallbacks === receivedCallbacks) {
-                        console.log(
+                        logger.info(
                                 'Saved ' + expectedCallbacks + ' courses');
                         self.saveNewLectureSeries();
                         self.saveSemester();
@@ -582,7 +592,7 @@ this.saveAllRooms = function() {
     var fileName = 'raumListe.json';
     fs.readFile(DATA_PATH + fileName, 'utf8', function(err, data) {
         if (err) {
-            return console.log(err);
+            return logger.info(err);
         }
         var roomArray = JSON.parse(data),
             expectedCallbacks = roomArray.length,
@@ -597,7 +607,7 @@ this.saveAllRooms = function() {
                         throw err;
                     ++receivedCallbacks;
                     if (expectedCallbacks === receivedCallbacks) {
-                        console.log(
+                        logger.info(
                                 'Saved ' + expectedCallbacks + ' rooms');
                         self.saveNewLectureSeries();
                         self.saveSemester();
@@ -640,7 +650,7 @@ this.saveNewLectureSeries = function() {
                     }
                     ++receivedCallbacks;
                     if (expectedCallbacks === receivedCallbacks) {
-                        console.log(
+                        logger.info(
                                 'Saved ' + expectedCallbacks + ' ' +
                                 'lecture series');
                         self.saveEvents();
@@ -681,7 +691,7 @@ this.saveEvents = function() {
                     }
                     ++receivedCallbacks;
                     if (expectedCallbacks === receivedCallbacks) {
-                        console.log(
+                        logger.info(
                                 'Saved ' + expectedCallbacks + ' events');
                         //DO NEXT COOL STUFF
                     }
@@ -719,7 +729,7 @@ this.saveSemester = function() {
                         throw err;
                     ++receivedCallbacks;
                     if (expectedCallbacks === receivedCallbacks) {
-                        console.log(
+                        logger.info(
                                 'Saved ' + expectedCallbacks + ' semesters');
                         //DO NEXT COOL STUFF
                     }
