@@ -2,7 +2,7 @@
  * @author Tarek Auel
  * @version 0.0.1
  */
-/*var neo4j = require('./lib/neo4j.js');
+var neo4j = require('./lib/neo4j.js');
 
 var cypher = 'MATCH (d:Docent)-[r]->(o) ' +
              'RETURN labels(d) + d.id as source,type(r) as reason, labels(o) + o.id as target LIMIT 5';
@@ -45,11 +45,4 @@ neo4j.query(cypher, null,
                 });
             }
         });
-    });*/
-start = Date.parse('2005-10-04 00:00:00' );
-end = Date.parse('2005-10-04 23:59:00');
-
-console.log(start);
-console.log(end);
-console.log(end-start);
-
+    });
